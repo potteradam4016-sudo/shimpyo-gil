@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3468f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="쉼표길">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<title>쉼표길</title>
+<style>
+:root{--bg:#f6f8fc;--card:#fff;--text:#182135;--muted:#6d7789;--line:#e4e9f1;--blue:#3468f5;--green:#159b68;--gray:#8b95a6;--warn:#e68a00;--danger:#e04b3f}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif}
+body{min-height:100%;padding-bottom:78px}
+button,input{font:inherit}
+.app{max-width:540px;margin:0 auto;background:var(--bg);min-height:100vh}
+.topbar{position:sticky;top:0;z-index:1100;background:rgba(246,248,252,.96);backdrop-filter:blur(12px);padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:38px;height:38px;border-radius:12px;background:var(--blue);color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900}
+.brand h1{margin:0;font-size:20px}.brand small{display:block;margin-top:2px;color:var(--muted);font-size:11.5px}
+.iconbtn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer}
+.searchcard{margin:12px 14px 10px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;box-shadow:0 8px 24px rgba(30,42,67,.06)}
+.searchline{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;position:relative}
+.searchline+.searchline{margin-top:8px}.searchline input{width:100%;border:0;background:#f7f8fb;border-radius:12px;padding:12px 13px;outline:none;font-size:16px}
+.searchline input:focus{box-shadow:0 0 0 2px rgba(52,104,245,.18);background:#fff}
+.suggestions{display:none;position:absolute;left:30px;right:0;top:48px;z-index:1400;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 28px rgba(30,42,67,.16);overflow:hidden;max-height:260px;overflow-y:auto}
+.suggestions.show{display:block}.suggestion{display:block;width:100%;border:0;border-bottom:1px solid #eef1f5;background:#fff;padding:11px 12px;text-align:left;cursor:pointer}
+.suggestion:last-child{border-bottom:0}.suggestion:active{background:#f3f6ff}.sname{display:block;font-size:14px;font-weight:800;margin-bottom:3px}.saddr{display:block;color:var(--muted);font-size:11.5px;line-height:1.4}
+.sourceRow{display:flex;gap:6px;align-items:center;margin-bottom:3px}
+.sourceBadge{display:inline-block;font-size:9.5px;font-weight:900;padding:3px 6px;border-radius:999px;background:#eef3ff;color:var(--blue)}
+.sourceBadge.external{background:#f0f2f5;color:#687285}
+.confirmed{font-size:11.5px;color:var(--green);padding:4px 2px 0 30px;line-height:1.35;min-height:20px}
+.mainbtn{width:100%;margin-top:10px;border:0;border-radius:13px;background:var(--blue);color:#fff;padding:13px 14px;font-weight:900;cursor:pointer}
+.searchConditions{margin-top:12px;border-top:1px solid #eef1f5;padding-top:12px}
+.searchConditionsHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.searchConditionsHead strong{font-size:14px}
+.searchConditionsHead span{font-size:10.5px;font-weight:900;background:#eef3ff;color:var(--blue);padding:5px 8px;border-radius:999px}
+.searchConditions .rangebox{padding:0 0 10px}
+.searchConditions .options{padding:0}
+.searchConditions .localInfo{margin:8px 0 0}
+.searchConditions .conditionSummary{padding:8px 0 0}
+
+.quick{display:flex;gap:8px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}.quick::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1px solid var(--line);background:#fff;padding:9px 11px;border-radius:999px;font-weight:750;color:#445068;cursor:pointer}.chip.active{border-color:var(--blue);color:var(--blue);background:#eef3ff}
+.mapwrap{margin:0 14px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(30,42,67,.06)}
+.maphead{padding:12px 13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}.maptitle{font-weight:900;font-size:15px}.mapsub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.mapactions{display:flex;gap:6px}.smallbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 9px;font-weight:800;cursor:pointer}
+#map{height:360px;background:#e9eef5}
+.status{padding:10px 13px;border-top:1px solid var(--line);font-size:12px;color:#4e596e;line-height:1.45}
+.sheet{margin:12px 14px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.sheetHead{padding:14px 14px 10px;display:flex;justify-content:space-between;align-items:center}.sheetHead strong{font-size:16px}.tag{font-size:11px;font-weight:900;background:#eef3ff;color:var(--blue);padding:5px 8px;border-radius:999px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 14px 12px}.metric{background:#f7f8fb;border-radius:12px;padding:10px}.metric b{display:block;font-size:15px}.metric span{font-size:10.5px;color:var(--muted)}
+.options{padding:0 14px 12px}.option{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid #f0f2f5;font-size:13px}.option input{width:19px;height:19px;accent-color:var(--blue)}
+.rangebox{padding:0 14px 14px}.rangeTop{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}.rangeTop b{color:var(--blue)}input[type=range]{width:100%;accent-color:var(--blue)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 14px}
+.routebox{border:1px solid var(--line);border-radius:14px;padding:11px;cursor:pointer}.routebox.active{border:2px solid var(--blue);padding:10px}
+.routebox strong{font-size:13px}.routebox .v{font-size:19px;font-weight:900;margin:5px 0 2px}.routebox .s{font-size:10.5px;color:var(--muted);line-height:1.4}
+.conditionSummary{padding:0 14px 12px;display:flex;gap:6px;flex-wrap:wrap}.cond{font-size:10.5px;font-weight:800;background:#f0f3f8;color:#536078;border-radius:999px;padding:5px 8px}.cond.on{background:#eef3ff;color:var(--blue)}
+.localBadge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:900;background:#fff4e8;color:#9b5a00;border:1px solid #ffd7a4;border-radius:999px;padding:5px 8px}
+.localInfo{margin:0 14px 12px;background:#fff8ee;border:1px solid #ffe0b6;border-radius:13px;padding:10px 11px;font-size:11.5px;line-height:1.5;color:#6b512d}
+.localInfo b{color:#8d5800}
+.viewRow{display:flex;gap:8px;padding:0 14px 14px}.viewBtn{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px;font-weight:900;color:#48546b;cursor:pointer}.viewBtn.active{border-color:var(--blue);background:#eef3ff;color:var(--blue)}
+.actions{display:flex;gap:8px;padding:0 14px 14px}.actions button{flex:1;border:0;border-radius:12px;padding:12px;font-weight:900}.ghost{background:#f1f4f8;color:#39445a}.go{background:var(--blue);color:#fff}
+.bottomnav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:1200;width:min(540px,100%);display:grid;grid-template-columns:repeat(3,1fr);background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:7px 10px calc(7px + env(safe-area-inset-bottom))}
+.navbtn{border:0;background:transparent;color:#697387;font-size:11px;font-weight:800;padding:6px}.navbtn b{display:block;font-size:20px;margin-bottom:2px}.navbtn.active{color:var(--blue)}
+.modal{display:none;position:fixed;inset:0;background:rgba(18,24,36,.42);z-index:2000;place-items:end center;padding:0}.modal.show{display:grid}.modalbox{width:min(540px,100%);background:#fff;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));max-height:82vh;overflow:auto}
+.modalbox h2{font-size:19px;margin:0 0 6px}.modalbox p{font-size:13px;color:var(--muted);line-height:1.55}.placeConfirm{background:#f7f9fc;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:9px}.placeConfirm b{display:block;margin-bottom:3px}.placeConfirm span{font-size:11.5px;color:var(--muted);line-height:1.4}
+.modalActions{display:flex;gap:8px;margin-top:14px}.modalActions button{flex:1;border:0;border-radius:12px;padding:12px;font-weight:900}.cancel{background:#eef1f5;color:#3f4a5e}.ok{background:var(--blue);color:#fff}
+.install{margin:12px 14px;background:#eef3ff;border:1px solid #dbe5ff;border-radius:16px;padding:12px;display:none;align-items:center;justify-content:space-between;gap:10px}.install.show{display:flex}.install span{font-size:12px;color:#40506d;line-height:1.4}.install button{border:0;background:var(--blue);color:#fff;border-radius:10px;padding:9px 11px;font-weight:900}
+.legend{background:white;padding:8px 10px;border-radius:11px;box-shadow:0 5px 18px rgba(0,0,0,.13);font-size:11px;line-height:1.7}.swatch{display:inline-block;width:22px;height:5px;border-radius:5px;margin-right:5px;vertical-align:middle}
+.qrbox{display:grid;place-items:center;margin:14px 0}.hint{font-size:11.5px;color:#72551b;background:#fff7e6;border:1px solid #ffe0a3;border-radius:12px;padding:10px;line-height:1.5}
+@media(min-width:541px){.app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="toprow">
+      <div class="brand"><div class="logo">，</div><div><h1>쉼표길</h1><small>빠른 길보다, 편한 길 · v6</small></div></div>
+      <button id="shareBtn" class="iconbtn" aria-label="공유 QR">▦</button>
+    </div>
+  </header>
+
+  <div id="installBar" class="install">
+    <span><b>앱처럼 설치 가능</b><br>홈 화면에 추가하면 전체화면으로 사용할 수 있어요.</span>
+    <button id="installBtn">설치</button>
+  </div>
+
+  <section class="searchcard">
+    <div class="searchline">
+      <span>●</span>
+      <input id="fromSearch" value="순천대학교 정문" placeholder="출발지 검색" autocomplete="off">
+      <div id="fromSuggestions" class="suggestions"></div>
+    </div>
+    <div id="fromResolved" class="confirmed">순천 주요 장소는 자체 DB에서 먼저 찾습니다.</div>
+
+    <div class="searchline">
+      <span>📍</span>
+      <input id="toSearch" value="공과대학 1호관" placeholder="도착지 검색" autocomplete="off">
+      <div id="toSuggestions" class="suggestions"></div>
+    </div>
+    <div id="toResolved" class="confirmed">순천 주요 장소는 자체 DB에서 먼저 찾습니다.</div>
+
+
+    <div class="searchConditions">
+      <div class="searchConditionsHead">
+        <strong>내 보행 조건</strong>
+        <span>체력 맞춤</span>
+      </div>
+      <div class="rangebox">
+        <div class="rangeTop"><span>한 번에 편하게 걸을 거리</span><b id="distValue">300m</b></div>
+        <input id="distance" type="range" min="100" max="800" step="50" value="300">
+      </div>
+      <div class="options">
+        <label class="option"><span>계단 피하기</span><input id="stairs" type="checkbox" checked></label>
+        <label class="option"><span>급경사 피하기</span><input id="slope" type="checkbox" checked></label>
+        <label class="option"><span>화장실 경유 선호</span><input id="toilet" type="checkbox" checked></label>
+        <label class="option"><span>쉼터·공원 우선</span><input id="shade" type="checkbox" checked></label>
+      </div>
+      <div class="localInfo">
+        <b>추가 경로 옵션</b><br>
+        <label style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:12px">
+          <span><b>지역 생활보행로 활용</b><br><small>빠른 길 후보에 숨은 골목·캠퍼스 내부길 등을 추가</small></span>
+          <input id="localWalk" type="checkbox" checked style="width:20px;height:20px;accent-color:#3468f5">
+        </label>
+        <div style="margin-top:8px">생활보행로가 더 빠르더라도 <b>계단·급경사</b>가 있으면 쉼표길은 더 편한 우회 경로를 선택합니다.</div>
+      </div>
+      <div id="conditionSummary" class="conditionSummary">
+        <span class="cond on">연속보행 300m</span>
+        <span class="cond on">계단 회피</span>
+        <span class="cond on">급경사 회피</span>
+        <span class="cond on">화장실</span>
+        <span class="cond on">쉼터</span>
+      </div>
+    </div>
+
+    <button id="searchBtn" class="mainbtn">편한 길 찾기</button>
+    <div style="font-size:11px;color:#6d7789;line-height:1.45;margin-top:9px">
+      예: <b>정문</b>, <b>공대1호관</b>, <b>도서관</b>, <b>학생회관</b>, <b>웅지관</b> · 자체 DB에 없으면 자동으로 지도 검색
+    </div>
+  </section>
+
+  <div class="quick">
+    <button class="chip active" data-p="cast">🩼 깁스·목발</button>
+    <button class="chip" data-p="rehab">🦵 재활·통증</button>
+    <button class="chip" data-p="senior">👵 오래 걷기 부담</button>
+    <button class="chip" data-p="custom">⚙️ 직접 설정</button>
+  </div>
+
+  <section class="mapwrap">
+    <div class="maphead">
+      <div><div class="maptitle">실제 순천 지도</div><div id="mapSub" class="mapsub">장소를 선택하면 경로를 보여줍니다.</div></div>
+      <div class="mapactions"><button id="obstacleBtn" class="smallbtn">🚧</button><button id="fitBtn" class="smallbtn">⌖</button></div>
+    </div>
+    <div id="map"></div>
+    <div id="status" class="status">순천 주요 장소는 자체 DB에서 먼저 검색하고, 없는 장소만 지도 검색을 사용합니다.</div>
+  </section>
+
+  <section class="sheet">
+    <div class="sheetHead"><strong>경로 비교</strong><span class="tag">추천 결과</span></div>
+    <div class="compare">
+      <div class="routebox" id="fastBox">
+        <strong>가장 빠른 길</strong>
+        <div class="v" id="fastTime">-</div>
+        <div class="s"><span id="fastDist">-</span><br>시간·거리 우선<br><span id="fastLocal">생활보행로 -</span></div>
+      </div>
+      <div class="routebox active" id="comfortBox">
+        <strong>쉼표길</strong>
+        <div class="v" id="comfortTime">-</div>
+        <div class="s"><span id="comfortDist">-</span><br><span id="restCount">쉼표 -</span><br><span id="localUsed">생활보행로 판단 -</span></div>
+      </div>
+    </div>
+
+    <div class="viewRow">
+      <button id="showFast" class="viewBtn">빠른 길만 보기</button>
+      <button id="showComfort" class="viewBtn active">쉼표길만 보기</button>
+      <button id="showBoth" class="viewBtn">둘 다</button>
+    </div>
+    <div class="actions">
+      <button id="whyBtn" class="ghost">왜 이 길?</button>
+      <button id="animateBtn" class="go">경로 시연</button>
+    </div>
+  </section>
+</div>
+
+<nav class="bottomnav" aria-label="하단 메뉴">
+  <button class="navbtn active"><b>🗺️</b>길찾기</button>
+  <button class="navbtn" id="demoNav"><b>🚶</b>시연</button>
+  <button class="navbtn" id="settingsNav"><b>⚙️</b>설정</button>
+</nav>
+
+<div id="confirmModal" class="modal"><div class="modalbox">
+  <h2>이 장소들이 맞나요?</h2>
+  <p>검색된 주소를 한 번 더 확인한 뒤 길을 찾습니다.</p>
+  <div class="placeConfirm"><b>● 출발지</b><span id="confirmFrom"></span></div>
+  <div class="placeConfirm"><b>📍 도착지</b><span id="confirmTo"></span></div>
+  <div class="modalActions"><button id="reselectBtn" class="cancel">다시 선택</button><button id="confirmBtn" class="ok">맞아요, 길찾기</button></div>
+</div></div>
+
+<div id="whyModal" class="modal"><div class="modalbox">
+  <h2>왜 쉼표길인가요?</h2>
+  <p>빠른 길은 지역 생활보행로까지 포함해 더 짧은 경로를 찾습니다. 하지만 그 생활보행로에 계단이나 급경사가 있으면 쉼표길은 조금 돌아가더라도 더 편한 길을 선택합니다.</p>
+  <div class="hint">핵심은 장애 여부가 아니라 <b>“오늘 내가 얼마나 걸을 수 있는가”</b>를 길찾기 기준에 넣는 것입니다.</div>
+  <div class="modalActions"><button id="closeWhy" class="ok">확인</button></div>
+</div></div>
+
+<div id="qrModal" class="modal"><div class="modalbox">
+  <h2>QR로 바로 체험</h2>
+  <p>공개 배포 후에는 이 QR을 스캔하면 누구나 이 모바일 웹앱으로 바로 들어올 수 있습니다.</p>
+  <div id="qrcode" class="qrbox"></div>
+  <div id="qrNote" class="hint">현재 페이지 주소로 QR을 생성합니다.</div>
+  <div class="modalActions"><button id="closeQr" class="ok">닫기</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const map=L.map('map',{zoomControl:false}).setView([34.95,127.494],14);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(map);
+const legend=L.control({position:'bottomleft'});
+legend.onAdd=()=>{const d=L.DomUtil.create('div','legend');d.innerHTML='<div><span class="swatch" style="background:#3468f5"></span>쉼표길</div><div><span class="swatch" style="background:#8b95a6"></span>빠른 길</div><div><span class="swatch" style="background:#e58a00"></span>지역 생활보행로</div><div><span class="swatch" style="background:#159b68"></span>우회길</div>';return d};legend.addTo(map);
+
+const fallbackStart=[34.946178,127.502069], fallbackEnd=[34.9535,127.4867];
+
+const selected={from:null,to:null}; let timers={from:null,to:null}, layers=[], restMarkers=[], comfortCoords=[], fastCoords=[], fastLine=null, comfortLine=null, localWalkLine=null, obstacle=false, deferredPrompt=null;
+
+// 순천 시연용 자체 장소 DB.
+// exact=true: 공개 지도/공식 자료로 위치 확인된 건물.
+// exact=false: 발표 시연을 위한 대표 지점(정문)이며 앱에서 별도 표시.
+const LOCAL_POIS=[
+  {name:'순천대학교 정문', aliases:['순천대 정문','순천대학교 메인게이트','순천대 메인게이트','정문'], address:'전라남도 순천시 중앙로 255 · 정문 대표 지점', coords:[34.96825,127.48435], category:'국립순천대학교', exact:false},
+  {name:'국립순천대학교', aliases:['순천대학교','순천대','scnu'], address:'전라남도 순천시 중앙로 255', coords:[34.96832,127.48030], category:'대학교', exact:true},
+  {name:'D2 공과대학 1호관', aliases:['공과대학 1호관','공대 1호관','공대1호관','공과대 1호관','D2','컴공 건물'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 공과대학 1호관', coords:[34.97042,127.47794], category:'국립순천대학교', exact:true},
+  {name:'D3 공과대학 2호관', aliases:['공과대학 2호관','공대 2호관','공대2호관','D3'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 공과대학 2호관', coords:[34.96967,127.47738], category:'국립순천대학교', exact:true},
+  {name:'D4 공과대학 3호관', aliases:['공과대학 3호관','공대 3호관','공대3호관','D4'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 공과대학 3호관', coords:[34.97006,127.47640], category:'국립순천대학교', exact:true},
+  {name:'C1 국립순천대학교 도서관', aliases:['순천대 도서관','중앙도서관','도서관','C1'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 도서관', coords:[34.96966,127.47941], category:'국립순천대학교', exact:true},
+  {name:'E1 학생회관', aliases:['순천대 학생회관','학생회관','E1','장애학생지원센터'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 학생회관', coords:[34.96886,127.47971], category:'국립순천대학교', exact:true},
+  {name:'A1 대학본부', aliases:['순천대 대학본부','대학본부','본부','A1'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 대학본부', coords:[34.96818,127.48092], category:'국립순천대학교', exact:true},
+  {name:'A13 웅지관', aliases:['웅지관','생활관 웅지관','A13'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 웅지관', coords:[34.96700,127.48171], category:'국립순천대학교', exact:true},
+  {name:'A17 체육관', aliases:['순천대 체육관','체육관','A17'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 체육관', coords:[34.96758,127.48352], category:'국립순천대학교', exact:true},
+  {name:'A5 진리관', aliases:['진리관','생활관 진리관','A5'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 진리관', coords:[34.96757,127.48107], category:'국립순천대학교', exact:true},
+  {name:'A9 청운관', aliases:['청운관','생활관 청운관','A9'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 청운관', coords:[34.96672,127.48032], category:'국립순천대학교', exact:true},
+  {name:'순천대학교 박물관', aliases:['순천대 박물관','박물관'], address:'전라남도 순천시 중앙로 255 · 국립순천대학교 박물관', coords:[34.96934,127.48293], category:'국립순천대학교', exact:true}
+];
+
+
+// 순천 지역 생활보행로 데모 DB
+// 주의: 아래 경로는 발표용 '검증 후보' 데이터이며 실제 서비스에서는 현장조사/공공데이터/OSM 태그 검증 후 사용해야 한다.
+const LOCAL_WALKWAYS=[
+  {
+    id:'scnu-campus-walk-01',
+    name:'순천대학교 내부 생활보행로',
+    aliases:['순천대 내부길','캠퍼스 보행로','공대 지름길'],
+    points:[
+      [34.96830,127.48405],
+      [34.96855,127.48295],
+      [34.96895,127.48172],
+      [34.96935,127.48045],
+      [34.96977,127.47920],
+      [34.97010,127.47836]
+    ],
+    note:'일반 길보다 빠를 수 있지만 계단·급경사가 있는 생활보행로를 가정한 시연용 후보 경로',
+    verified:false,
+    stairs:true,
+    steep:true
+  }
+];
+
+function norm(s){return String(s||'').toLowerCase().replace(/\s+/g,'').replace(/국립/g,'')}
+
+function searchLocal(term){
+  const q=norm(term);
+  if(q.length<1)return [];
+  return LOCAL_POIS.map(p=>{
+    const candidates=[p.name,...p.aliases,p.category];
+    let score=0;
+    for(const c of candidates){
+      const n=norm(c);
+      if(n===q)score=Math.max(score,100);
+      else if(n.startsWith(q))score=Math.max(score,80);
+      else if(n.includes(q))score=Math.max(score,60);
+      else if(q.includes(n) && n.length>=2)score=Math.max(score,45);
+    }
+    return {p,score};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.p).slice(0,6);
+}
+
+
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function hav(a,b){const R=6371000,r=x=>x*Math.PI/180,d1=r(b[0]-a[0]),d2=r(b[1]-a[1]);const q=Math.sin(d1/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+function length(c){let s=0;for(let i=1;i<c.length;i++)s+=hav(c[i-1],c[i]);return s}
+function km(m){return m>=1000?(m/1000).toFixed(2)+'km':Math.round(m)+'m'}
+function mins(sec){return Math.max(1,Math.round(sec/60))+'분'}
+function sample(coords,step){const out=[];let acc=0;for(let i=1;i<coords.length;i++){acc+=hav(coords[i-1],coords[i]);if(acc>=step){out.push(coords[i]);acc=0}}return out.slice(0,3)}
+function clearMap(){layers.forEach(x=>{try{map.removeLayer(x)}catch(e){}});layers=[];restMarkers=[];fastLine=null;comfortLine=null;localWalkLine=null}
+
+async function searchPlaces(term){
+  const q=term.trim(); if(q.length<1)return [];
+
+  // 1순위: 앱 자체 DB. 매칭되면 외부 API를 기다리지 않고 즉시 반환.
+  const local=searchLocal(q).map(p=>({
+    _local:true,
+    name:p.name,
+    display_name:p.address,
+    lat:p.coords[0],
+    lon:p.coords[1],
+    category:p.category,
+    exact:p.exact
+  }));
+  if(local.length) return local.slice(0,8);
+  if(q.length<2) return [];
+
+  // 2순위: 자체 DB에 없을 때만 외부 지도 검색. 3.5초 안에 응답 없으면 종료.
+  const external=[];
+  const qs=[q+' 순천시 전라남도',q+' 전라남도',q];
+  const seen=new Set();
+  for(const query of qs){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),3500);
+    try{
+      const u='https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=kr&limit=5&accept-language=ko&q='+encodeURIComponent(query);
+      const r=await fetch(u,{signal:controller.signal,headers:{'Accept':'application/json'}});
+      clearTimeout(timer);
+      if(!r.ok)continue;
+      const j=await r.json();
+      for(const item of j){
+        const key=(item.osm_type||'')+'-'+(item.osm_id||item.place_id);
+        const name=norm(item.name||(item.display_name||'').split(',')[0]);
+        if(seen.has(key)||seen.has(name))continue;
+        seen.add(key);seen.add(name);
+        external.push({...item,_local:false});
+        if(external.length>=5)break;
+      }
+    }catch(e){ clearTimeout(timer); }
+    if(external.length>=5)break;
+  }
+  return external.slice(0,8);
+}
+function placeOf(item){return {name:item.name||(item.display_name||'').split(',')[0],address:item.display_name||'',coords:[+item.lat,+item.lon],local:!!item._local,exact:item.exact!==false,category:item.category||''}}
+function render(kind,items){
+  const box=$(kind+'Suggestions'); box.innerHTML='';
+  if(!items.length){box.innerHTML='<button class="suggestion" disabled><span class="sname">검색 결과 없음</span><span class="saddr">장소명을 조금 더 구체적으로 입력해보세요.</span></button>';box.classList.add('show');return}
+  items.forEach(item=>{
+    const p=placeOf(item),b=document.createElement('button');b.type='button';b.className='suggestion';
+    const badge=p.local?'<span class="sourceBadge">쉼표길 DB</span>':'<span class="sourceBadge external">지도 검색</span>';
+    const approx=(p.local&&!p.exact)?'<span class="sourceBadge external">데모 위치</span>':'';
+    b.innerHTML='<span class="sourceRow">'+badge+approx+'</span><span class="sname">'+esc(p.name)+'</span><span class="saddr">'+esc(p.address)+'</span>';
+    b.addEventListener('click',()=>choose(kind,p));box.appendChild(b)
+  });box.classList.add('show')
+}
+function choose(kind,p){
+  selected[kind]=p;$(kind+'Search').value=p.name;
+  const source=p.local?'쉼표길 DB':'지도 검색';
+  const approx=(p.local&&!p.exact)?' · 시연용 대표 위치':'';
+  $(kind+'Resolved').innerHTML='✓ '+esc(p.address)+'<br><span style="color:#6d7789">'+source+approx+'</span>';
+  $(kind+'Suggestions').classList.remove('show')
+}
+async function trigger(kind){
+  selected[kind]=null; const term=$(kind+'Search').value.trim(); if(term.length<1)return;
+  $(kind+'Resolved').textContent=searchLocal(term).length?'쉼표길 DB 검색 중…':'외부 지도에서 검색 중…'; const items=await searchPlaces(term); render(kind,items); $(kind+'Resolved').textContent=items.length?'아래 후보에서 맞는 장소를 선택해주세요.':'검색 결과가 없습니다.';
+}
+function wire(kind){
+  const input=$(kind+'Search');
+  input.addEventListener('input',()=>{clearTimeout(timers[kind]);timers[kind]=setTimeout(()=>trigger(kind),450)});
+  input.addEventListener('focus',()=>{if(!selected[kind]&&input.value.trim().length>=1)trigger(kind)});
+}
+wire('from');wire('to');
+
+
+function activeConditions(){
+  return {
+    distance:+$('distance').value,
+    stairs:$('stairs').checked,
+    slope:$('slope').checked,
+    toilet:$('toilet').checked,
+    shade:$('shade').checked,
+    localWalk:$('localWalk').checked
+  };
+}
+function renderConditions(){
+  const c=activeConditions();
+  const items=[
+    ['연속보행 '+c.distance+'m',true],
+    ['계단 회피',c.stairs],
+    ['급경사 회피',c.slope],
+    ['화장실',c.toilet],
+    ['쉼터',c.shade]
+  ];
+  $('conditionSummary').innerHTML=items.map(x=>'<span class="cond '+(x[1]?'on':'')+'">'+x[0]+(x[1]?'':' OFF')+'</span>').join('');
+}
+function setRouteView(mode){
+  if(!fastLine||!comfortLine)return;
+  fastLine.setStyle({opacity:(mode==='fast'||mode==='both')?.92:.12});
+  comfortLine.setStyle({opacity:(mode==='comfort'||mode==='both')?.95:.12});
+  $('fastBox').classList.toggle('active',mode==='fast');
+  $('comfortBox').classList.toggle('active',mode==='comfort');
+  $('showFast').classList.toggle('active',mode==='fast');
+  $('showComfort').classList.toggle('active',mode==='comfort');
+  $('showBoth').classList.toggle('active',mode==='both');
+  $('status').innerHTML=mode==='fast'
+    ?'<b>빠른 길 표시</b> · 지역 생활보행로를 포함해 시간·거리를 우선한 경로입니다.'
+    :mode==='comfort'
+      ?'<b>쉼표길 표시</b> · 현재 보행 조건을 반영한 경로입니다.'
+      :'<b>두 경로 비교</b> · 회색 점선이 빠른 길, 파란색이 쉼표길입니다.';
+}
+
+function nearestWalkway(start,end){
+  // 데모에서는 출발/도착이 순천대 캠퍼스 권역에 있을 때만 내부 생활보행로 후보를 사용한다.
+  const w=LOCAL_WALKWAYS[0];
+  const nearStart=Math.min(...w.points.map(p=>hav(start,p)));
+  const nearEnd=Math.min(...w.points.map(p=>hav(end,p)));
+  if(nearStart<900 && nearEnd<900) return w;
+  return null;
+}
+
+function orientWalkway(points,start,end){
+  const a=hav(start,points[0])+hav(end,points[points.length-1]);
+  const b=hav(start,points[points.length-1])+hav(end,points[0]);
+  return a<=b ? points.slice() : points.slice().reverse();
+}
+
+async function buildLocalWalkRoute(start,end,w){
+  const oriented=orientWalkway(w.points,start,end);
+  const startConnector=await route([start,oriented[0]]);
+  const endConnector=await route([oriented[oriented.length-1],end]);
+  const startCoords=startConnector?.coords || [start,oriented[0]];
+  const endCoords=endConnector?.coords || [oriented[oriented.length-1],end];
+  const coords=[...startCoords,...oriented.slice(1),...endCoords.slice(1)];
+  const d=length(coords);
+  return {
+    coords,
+    distance:d,
+    duration:d/1.22,
+    live:!!(startConnector||endConnector),
+    local:true,
+    walkway:{...w,points:oriented}
+  };
+}
+
+function drawLocalWalkway(w){
+  if(localWalkLine){try{map.removeLayer(localWalkLine)}catch(e){}}
+  localWalkLine=L.polyline(w.points,{
+    color:'#e58a00',
+    weight:7,
+    opacity:.95,
+    dashArray:'6 8'
+  }).addTo(map);
+  localWalkLine.bindPopup('<b>지역 생활 보행로</b><br>'+esc(w.name)+'<br><small>'+esc(w.note)+'</small><br><small>※ 시연용 검증 후보 데이터</small>');
+  layers.push(localWalkLine);
+}
+
+async function route(points){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),5000);
+  try{
+    const coords=points.map(p=>p[1]+','+p[0]).join(';');
+    const u='https://routing.openstreetmap.de/routed-foot/route/v1/driving/'+coords+'?overview=full&geometries=geojson&steps=false';
+    const r=await fetch(u,{signal:controller.signal});
+    clearTimeout(timer);
+    if(!r.ok) return null;
+    const j=await r.json();
+    if(j.routes&&j.routes[0])return {coords:j.routes[0].geometry.coordinates.map(x=>[x[1],x[0]]),distance:j.routes[0].distance,duration:j.routes[0].duration,live:true};
+  }catch(e){ clearTimeout(timer); }
+  return null;
+}
+function fallback(a,b,comfort){
+  const c=[]; for(let i=0;i<=12;i++){const t=i/12;c.push([a[0]+(b[0]-a[0])*t+(comfort?0.0011:0.0002)*Math.sin(Math.PI*t),a[1]+(b[1]-a[1])*t-(comfort?0.0007:0.0001)*Math.sin(2*Math.PI*t)])}
+  const d=length(c); return {coords:c,distance:d,duration:d/(comfort?1.05:1.2),live:false}
+}
+function openConfirm(){
+  if(!selected.from||!selected.to){$('status').innerHTML='<b>순천 주요 장소는 자체 DB에서 먼저 검색하고, 없는 장소만 지도 검색을 사용합니다.</b>'; if(!selected.from)trigger('from'); else trigger('to'); return}
+  $('confirmFrom').innerHTML='<b>'+esc(selected.from.name)+'</b><br>'+esc(selected.from.address);
+  $('confirmTo').innerHTML='<b>'+esc(selected.to.name)+'</b><br>'+esc(selected.to.address);
+  $('confirmModal').classList.add('show')
+}
+async function calculate(){
+  $('confirmModal').classList.remove('show');
+  clearMap();
+  $('status').textContent='보행 경로를 계산하는 중…';
+
+  const s=selected.from.coords,e=selected.to.coords;
+  const sm=L.marker(s).addTo(map).bindPopup('<b>출발</b><br>'+esc(selected.from.name));
+  const em=L.marker(e).addTo(map).bindPopup('<b>도착</b><br>'+esc(selected.to.name));
+  layers.push(sm,em);
+
+  const c=activeConditions();
+
+  // 1) 일반 보행망 기준 빠른 길
+  let baseFast=await route([s,e]);
+  if(!baseFast) baseFast=fallback(s,e,false);
+
+  // 2) 지역 생활보행로를 켰다면 빠른 길의 추가 후보로 계산
+  const localW=c.localWalk?nearestWalkway(s,e):null;
+  let localFast=null;
+  if(localW) localFast=await buildLocalWalkRoute(s,e,localW);
+
+  // 실제 서비스: 여러 후보의 실제 시간/거리 비교.
+  // 데모: 생활보행로가 일반 경로보다 짧을 때만 '빠른 길'로 선택한다.
+  let fr=baseFast;
+  if(localFast && localFast.distance < baseFast.distance){
+    fr=localFast;
+    drawLocalWalkway(localFast.walkway);
+  }
+
+  fastCoords=fr.coords;
+  fastLine=L.polyline(fr.coords,{color:'#8b95a6',weight:7,dashArray:'11 9',opacity:.88}).addTo(map);
+  layers.push(fastLine);
+
+  // 쉼표길 가중치(프로토타입): 실제 서비스에서는 계단/경사/GIS 속성으로 계산
+  let detour=0.00020;
+  if(c.stairs) detour+=0.00030;
+  if(c.slope) detour+=0.00028;
+  if(c.toilet) detour+=0.00012;
+  if(c.shade) detour+=0.00012;
+
+  // 생활보행로가 계단/급경사를 포함하고 사용자가 회피를 켰으면 쉼표길은 해당 길을 쓰지 않는다.
+  const localConflict=!!(localW && ((c.stairs&&localW.stairs)||(c.slope&&localW.steep)));
+  let cr=null;
+
+  if(localW && !localConflict && localFast){
+    // 계단/경사 회피 조건과 충돌하지 않을 때는 쉼표길도 생활보행로를 후보로 사용할 수 있음
+    cr=localFast;
+    comfortCoords=cr.coords;
+    if(fr!==localFast) drawLocalWalkway(localFast.walkway);
+  }else{
+    // 충돌 시: 생활보행로가 더 빠르더라도 쉼표길은 일반 보행망 쪽으로 돌아간다.
+    const seedBase=baseFast.coords;
+    const seeds=sample(seedBase,Math.max(140,c.distance*.78));
+    const via=seeds.map((p,i)=>[
+      p[0]+detour*(i%2?1.0:.7),
+      p[1]-detour*(i%2?.72:1.0)
+    ]);
+    cr=via.length?await route([s,...via.slice(0,3),e]):null;
+    if(!cr) cr=fallback(s,e,true);
+    comfortCoords=cr.coords;
+  }
+
+  comfortLine=L.polyline(cr.coords,{color:'#3468f5',weight:8,opacity:.95}).addTo(map);
+  layers.push(comfortLine);
+
+  const rests=sample(cr.coords,Math.max(120,c.distance*.82)),icons=['🪑','🚻','🌳'];
+  rests.forEach((p,i)=>{
+    const m=L.marker(p,{icon:L.divIcon({
+      className:'',
+      html:'<div style="width:34px;height:34px;border-radius:50%;background:white;border:2px solid #ffd36b;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.2);font-size:17px">'+icons[i]+'</div>',
+      iconSize:[34,34],iconAnchor:[17,17]
+    })}).addTo(map);
+    layers.push(m);restMarkers.push(m);
+  });
+
+  const group=L.featureGroup([sm,em,fastLine,comfortLine]);
+  map.fitBounds(group.getBounds().pad(.16));
+  $('mapSub').textContent=selected.from.name+' → '+selected.to.name;
+
+  $('fastTime').textContent=mins(fr.duration);
+  $('fastDist').textContent=km(fr.distance);
+  $('fastLocal').innerHTML=(localFast && fr===localFast)
+    ?'<span class="localBadge">지역 생활보행로로 더 빠르게</span>'
+    :'일반 보행망 사용';
+
+  $('comfortTime').textContent=mins(cr.duration*1.05);
+  $('comfortDist').textContent=km(cr.distance);
+  $('restCount').textContent='쉼표 '+rests.length+'곳';
+
+  if(localW && localConflict){
+    const why=[];
+    if(c.stairs&&localW.stairs) why.push('계단');
+    if(c.slope&&localW.steep) why.push('급경사');
+    $('localUsed').innerHTML='<span class="localBadge">생활보행로 회피 · '+why.join('·')+'</span>';
+  }else if(localW && cr===localFast){
+    $('localUsed').innerHTML='<span class="localBadge">생활보행로 사용 가능</span>';
+  }else{
+    $('localUsed').textContent='생활보행로 미사용';
+  }
+
+  renderConditions();
+  setRouteView('both');
+
+  const ctext=[
+    c.stairs?'계단 회피':null,
+    c.slope?'급경사 회피':null,
+    c.toilet?'화장실 우선':null,
+    c.shade?'쉼터 우선':null
+  ].filter(Boolean).join(' · ');
+
+  let note='';
+  if(localFast && fr===localFast && localConflict){
+    note=' · <b>빠른 길은 생활보행로</b> / <b>쉼표길은 계단·경사 회피로 우회</b>';
+  }else if(localFast && fr===localFast){
+    note=' · <b>빠른 길은 지역 생활보행로 활용</b>';
+  }
+
+  $('status').innerHTML='적용 조건: '+(ctext||'기본')+' · 연속보행 '+c.distance+'m'+note;
+}
+
+$('searchBtn').addEventListener('click',openConfirm); $('confirmBtn').addEventListener('click',calculate); $('reselectBtn').addEventListener('click',()=>$('confirmModal').classList.remove('show'));
+$('whyBtn').addEventListener('click',()=>$('whyModal').classList.add('show')); $('closeWhy').addEventListener('click',()=>$('whyModal').classList.remove('show'));
+$('distance').addEventListener('input',()=>{$('distValue').textContent=$('distance').value+'m';renderConditions()});
+['stairs','slope','toilet','shade','localWalk'].forEach(id=>$(id).addEventListener('change',renderConditions));
+$('showFast').addEventListener('click',()=>setRouteView('fast'));
+$('showComfort').addEventListener('click',()=>setRouteView('comfort'));
+$('showBoth').addEventListener('click',()=>setRouteView('both'));
+$('fastBox').addEventListener('click',()=>setRouteView('fast'));
+$('comfortBox').addEventListener('click',()=>setRouteView('comfort'));
+const profiles={cast:300,rehab:350,senior:250};
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(profiles[b.dataset.p]){$('distance').value=profiles[b.dataset.p];$('distValue').textContent=profiles[b.dataset.p]+'m';renderConditions()}}));
+$('fitBtn').addEventListener('click',()=>{if(layers.length)map.fitBounds(L.featureGroup(layers).getBounds().pad(.15))});
+$('obstacleBtn').addEventListener('click',()=>{
+  if(!comfortCoords.length)return;
+  obstacle=!obstacle;
+  if(obstacle){
+    const alt=comfortCoords.map((p,i)=>{const t=i/(comfortCoords.length-1);return[p[0]+0.0007*Math.sin(Math.PI*t),p[1]+0.0005*Math.sin(2*Math.PI*t)]});
+    const al=L.polyline(alt,{color:'#159b68',weight:8}).addTo(map);layers.push(al);$('status').innerHTML='<b>🚧 공사 제보 발생</b> · 기존 쉼표길을 피해 초록색 우회 경로로 재탐색';
+  }else $('status').innerHTML='<b>장애물 시연 종료</b> · 기본 쉼표길 유지';
+});
+$('animateBtn').addEventListener('click',async()=>{
+  if(!comfortCoords.length)return; const w=L.circleMarker(comfortCoords[0],{radius:8,color:'#fff',weight:4,fillColor:'#3468f5',fillOpacity:1}).addTo(map);layers.push(w);
+  const jump=Math.max(1,Math.floor(comfortCoords.length/34));for(let i=0;i<comfortCoords.length;i+=jump){w.setLatLng(comfortCoords[i]);await new Promise(r=>setTimeout(r,85))}w.setLatLng(comfortCoords[comfortCoords.length-1]);$('status').innerHTML='<b>🏁 도착</b> · 설정한 보행거리 안에서 쉼표를 거치는 이동 시연 완료'
+});
+$('demoNav').addEventListener('click',()=>$('animateBtn').click()); $('settingsNav').addEventListener('click',()=>document.querySelector('.sheet').scrollIntoView({behavior:'smooth'}));
+
+$('shareBtn').addEventListener('click',()=>{
+  $('qrModal').classList.add('show'); const q=$('qrcode');q.innerHTML='';const url=location.href.split('#')[0];
+  if(location.protocol==='http:'||location.protocol==='https:'){new QRCode(q,{text:url,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});$('qrNote').innerHTML='이 QR을 찍으면 바로 쉼표길 데모로 들어옵니다.<br><b>'+esc(url)+'</b>'}
+  else $('qrNote').textContent='공개 배포 후 현재 주소로 QR이 자동 생성됩니다.';
+});
+$('closeQr').addEventListener('click',()=>$('qrModal').classList.remove('show'));
+
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBar').classList.add('show')});
+$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBar').classList.remove('show')});
+window.addEventListener('appinstalled',()=>{$('installBar').classList.remove('show')});
+
+if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+renderConditions();
+setTimeout(()=>{
+  const from=searchLocal('순천대학교 정문')[0];
+  const to=searchLocal('공과대학 1호관')[0];
+  if(from) choose('from',{name:from.name,address:from.address,coords:from.coords,local:true,exact:from.exact,category:from.category});
+  if(to) choose('to',{name:to.name,address:to.address,coords:to.coords,local:true,exact:to.exact,category:to.category});
+  $('status').textContent='기본 시연 장소가 선택되었습니다. 바로 ‘편한 길 찾기’를 눌러보세요.';
+},120);
+</script>
+</body>
+</html>
