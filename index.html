@@ -79,7 +79,7 @@ button,input{font:inherit}
 <div class="app">
   <header class="topbar">
     <div class="toprow">
-      <div class="brand"><div class="logo">，</div><div><h1>쉼표길</h1><small>빠른 길보다, 편한 길 · v6</small></div></div>
+      <div class="brand"><div class="logo">，</div><div><h1>쉼표길</h1><small>빠른 길보다, 편한 길 · v7</small></div></div>
       <button id="shareBtn" class="iconbtn" aria-label="공유 QR">▦</button>
     </div>
   </header>
@@ -112,7 +112,7 @@ button,input{font:inherit}
       </div>
       <div class="rangebox">
         <div class="rangeTop"><span>한 번에 편하게 걸을 거리</span><b id="distValue">300m</b></div>
-        <input id="distance" type="range" min="100" max="800" step="50" value="300">
+        <input id="distance" type="range" min="100" max="2000" step="50" value="300">
       </div>
       <div class="options">
         <label class="option"><span>계단 피하기</span><input id="stairs" type="checkbox" checked></label>
@@ -385,7 +385,7 @@ function activeConditions(){
 function renderConditions(){
   const c=activeConditions();
   const items=[
-    ['연속보행 '+c.distance+'m',true],
+    ['연속보행 '+(c.distance>=1000?((c.distance/1000).toFixed(c.distance%1000===0?0:1)+'km'):(c.distance+'m')),true],
     ['계단 회피',c.stairs],
     ['급경사 회피',c.slope],
     ['화장실',c.toilet],
@@ -600,7 +600,7 @@ async function calculate(){
 
 $('searchBtn').addEventListener('click',openConfirm); $('confirmBtn').addEventListener('click',calculate); $('reselectBtn').addEventListener('click',()=>$('confirmModal').classList.remove('show'));
 $('whyBtn').addEventListener('click',()=>$('whyModal').classList.add('show')); $('closeWhy').addEventListener('click',()=>$('whyModal').classList.remove('show'));
-$('distance').addEventListener('input',()=>{$('distValue').textContent=$('distance').value+'m';renderConditions()});
+$('distance').addEventListener('input',()=>{const v=+$('distance').value;$('distValue').textContent=v>=1000?(v/1000).toFixed(v%1000===0?0:1)+'km':v+'m';renderConditions()});
 ['stairs','slope','toilet','shade','localWalk'].forEach(id=>$(id).addEventListener('change',renderConditions));
 $('showFast').addEventListener('click',()=>setRouteView('fast'));
 $('showComfort').addEventListener('click',()=>setRouteView('comfort'));
@@ -608,7 +608,7 @@ $('showBoth').addEventListener('click',()=>setRouteView('both'));
 $('fastBox').addEventListener('click',()=>setRouteView('fast'));
 $('comfortBox').addEventListener('click',()=>setRouteView('comfort'));
 const profiles={cast:300,rehab:350,senior:250};
-document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(profiles[b.dataset.p]){$('distance').value=profiles[b.dataset.p];$('distValue').textContent=profiles[b.dataset.p]+'m';renderConditions()}}));
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(profiles[b.dataset.p]){$('distance').value=profiles[b.dataset.p];const v=profiles[b.dataset.p];$('distValue').textContent=v>=1000?(v/1000).toFixed(v%1000===0?0:1)+'km':v+'m';renderConditions()}}));
 $('fitBtn').addEventListener('click',()=>{if(layers.length)map.fitBounds(L.featureGroup(layers).getBounds().pad(.15))});
 $('obstacleBtn').addEventListener('click',()=>{
   if(!comfortCoords.length)return;
